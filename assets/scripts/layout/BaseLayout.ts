@@ -1,9 +1,12 @@
 import { CCFloat, Component, director, Director, Enum, Node, UITransform, Vec2, _decorator } from "cc";
-import { Action } from "../utility/ActionEvent";
 import IgnoreLayout from "./IgnoreLayout";
 import LayoutFixedSize from "./LayoutFixedSize";
 
 const { ccclass, property, executeInEditMode } = _decorator;
+
+interface OnPositionEvent {
+    (uiTransform: UITransform, x: number, height: number): void;
+}
 
 export enum LayoutAlignment {
     /** 正向排序 */
@@ -45,7 +48,7 @@ export default abstract class BaseLayout extends Component {
 
     private isDirty: boolean = false;
     private uiTransform: UITransform;
-    protected foreachChildren: Action<Action<UITransform>>;
+    protected foreachChildren: (callback: (uiTransform: UITransform) => void) => void;
 
     onLoad(): void {
         this.uiTransform = this.node.getComponent(UITransform);
@@ -61,21 +64,21 @@ export default abstract class BaseLayout extends Component {
         this.removeEventListeners();
     }
 
-    protected getForeachChildren(reverse: boolean): Action<Action<UITransform>> {
-        let CallChildFunc = (child: UITransform, callback: Action<UITransform>) => {
+    protected getForeachChildren(reverse: boolean): (callback: (uiTransform: UITransform) => void) => void {
+        let callChildFunc = (child: UITransform, callback: (uiTransform: UITransform) => void) => {
             if (child.node.active && child.getComponent(IgnoreLayout) == null)
                 callback(child);
         };
         if (reverse) {
-            return (callback: Action<UITransform>) => {
+            return (callback: (uiTransform: UITransform) => void) => {
                 for (let i = this.node.children.length - 1; i >= 0; i--) {
-                    CallChildFunc(this.node.children[i].getComponent(UITransform), callback);
+                    callChildFunc(this.node.children[i].getComponent(UITransform), callback);
                 }
             };
         } else {
-            return (callback: Action<UITransform>) => {
+            return (callback: (uiTransform: UITransform) => void) => {
                 for (let i = 0; i < this.node.children.length; i++) {
-                    CallChildFunc(this.node.children[i].getComponent(UITransform), callback);
+                    callChildFunc(this.node.children[i].getComponent(UITransform), callback);
                 }
             };
         }
@@ -87,6 +90,7 @@ export default abstract class BaseLayout extends Component {
         this.node.on(Node.EventType.ANCHOR_CHANGED, this.layoutDirty, this);
         this.node.on(Node.EventType.CHILD_ADDED, this.onChildAdded, this);
         this.node.on(Node.EventType.CHILD_REMOVED, this.onChildRemoved, this);
+        this.node.on('childrenSiblingOrderChanged', this.doLayout, this);
         this.addChildrenEventListeners();
     }
 
@@ -96,6 +100,7 @@ export default abstract class BaseLayout extends Component {
         this.node.off(Node.EventType.ANCHOR_CHANGED, this.layoutDirty, this);
         this.node.off(Node.EventType.CHILD_ADDED, this.onChildAdded, this);
         this.node.off(Node.EventType.CHILD_REMOVED, this.onChildRemoved, this);
+        this.node.off('childrenSiblingOrderChanged', this.doLayout, this);
         this.removeChildrenEventListeners();
     }
 
@@ -142,7 +147,7 @@ export default abstract class BaseLayout extends Component {
     }
 
     protected doLayout(): void {
-        if (!this.layoutDirty || this.node.children.length <= 0) return;
+        if (!this.isDirty || this.node.children.length <= 0) return;
         this.forceDoLayout();
     }
 
@@ -186,7 +191,7 @@ export default abstract class BaseLayout extends Component {
             this.setNodeHeight(this.uiTransform, outHeight.maxHeight + margins[1].x + margins[1].y);
     }
 
-    protected getAlignmentFunction(sign: number, anchor: number, margin: Vec2, outHeight: { maxHeight: number }): Action<UITransform, number, number> {
+    protected getAlignmentFunction(sign: number, anchor: number, margin: Vec2, outHeight: { maxHeight: number }): OnPositionEvent {
         return (uiTransform: UITransform, x: number, height: number) => {
             let contentHeight = this.getNodeHeight(this.uiTransform);
             switch (this.alignment) {
@@ -211,7 +216,7 @@ export default abstract class BaseLayout extends Component {
         }
     }
 
-    protected layoutChildiren(sign: number, margin: number, OnPosition: Action<UITransform, number, number>): void {
+    protected layoutChildiren(sign: number, margin: number, OnPosition: OnPositionEvent): void {
         let lastOffset = margin;
         let spacing = BaseLayout.signValue(this.spacing, sign);
         this.foreachChildren((child) => {
@@ -222,24 +227,24 @@ export default abstract class BaseLayout extends Component {
         });
     }
 
-    protected layoutCenter(sign: number, margin: number, OnPosition: Action<UITransform, number, number>): void {
+    protected layoutCenter(sign: number, margin: number, onPosition: OnPositionEvent): void {
         let layoutSize = - this.spacing;
         this.foreachChildren((child) => {
             layoutSize += this.getNodeWidth(child) + this.spacing;
         });
-        this.layoutChildiren(sign, BaseLayout.signValue(-layoutSize * 0.5, sign) - margin, OnPosition);
+        this.layoutChildiren(sign, BaseLayout.signValue(-layoutSize * 0.5, sign) - margin, onPosition);
     }
 
-    protected layoutContent(sign: number, margin: Vec2, width: number, anchor: Vec2, OnPosition: Action<UITransform, number, number>): void {
+    protected layoutContent(sign: number, margin: Vec2, width: number, anchor: Vec2, onPosition: OnPositionEvent): void {
         let layoutSize = -this.spacing + margin.x + margin.y;
         this.foreachChildren((child) => {
             layoutSize += this.getNodeWidth(child) + this.spacing;
         });
         this.setNodeWidth(this.uiTransform, layoutSize);
-        this.layoutChildiren(sign, BaseLayout.signValue(margin.x - width * anchor.x, sign), OnPosition);
+        this.layoutChildiren(sign, BaseLayout.signValue(margin.x - width * anchor.x, sign), onPosition);
     }
 
-    protected layoutFull(sign: number, margin: Vec2, width: number, anchor: Vec2, OnPosition: Action<UITransform, number, number>): void {
+    protected layoutFull(sign: number, margin: Vec2, width: number, anchor: Vec2, onPosition: OnPositionEvent): void {
         let childList: UITransform[] = [];
         let newWidth = width;
         this.foreachChildren((child) => {
@@ -252,7 +257,7 @@ export default abstract class BaseLayout extends Component {
         let childWidth = (newWidth - margin.x - margin.y + this.spacing) / childList.length - this.spacing;
         for (let child of childList)
             this.setNodeWidth(child, childWidth);
-        this.layoutChildiren(sign, BaseLayout.signValue(margin.x - width * anchor.x, sign), OnPosition);
+        this.layoutChildiren(sign, BaseLayout.signValue(margin.x - width * anchor.x, sign), onPosition);
     }
 
     protected static signValue(value: number, sign: number): number {
