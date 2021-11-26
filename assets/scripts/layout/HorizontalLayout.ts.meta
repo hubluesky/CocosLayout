@@ -1,0 +1,14 @@
+{
+  "ver": "4.0.22",
+  "importer": "typescript",
+  "imported": true,
+  "uuid": "d7bd6515-8c70-4a67-b9d7-2756b0a49038",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "importAsPlugin": false,
+    "moduleId": "project:///assets/Script/Framework/Layout/HorizontalLayout.js",
+    "importerSettings": 0,
+    "simulateGlobals": []
+  }
+}

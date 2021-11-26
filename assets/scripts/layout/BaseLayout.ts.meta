@@ -1,0 +1,14 @@
+{
+  "ver": "4.0.22",
+  "importer": "typescript",
+  "imported": true,
+  "uuid": "e74f53d2-f2a4-4035-87fd-dbbeea57bdc9",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "importAsPlugin": false,
+    "moduleId": "project:///assets/Script/Framework/Layout/BaseLayout.js",
+    "importerSettings": 0,
+    "simulateGlobals": []
+  }
+}

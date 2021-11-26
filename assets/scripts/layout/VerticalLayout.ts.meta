@@ -1,0 +1,14 @@
+{
+  "ver": "4.0.22",
+  "importer": "typescript",
+  "imported": true,
+  "uuid": "c7f7a59d-f1e6-43ef-be15-66511adc69ab",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "importAsPlugin": false,
+    "moduleId": "project:///assets/Script/Framework/Layout/VerticalLayout.js",
+    "importerSettings": 0,
+    "simulateGlobals": []
+  }
+}

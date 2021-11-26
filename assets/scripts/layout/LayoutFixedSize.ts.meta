@@ -1,0 +1,14 @@
+{
+  "ver": "4.0.22",
+  "importer": "typescript",
+  "imported": true,
+  "uuid": "1d59c185-5e4c-4b26-bd2e-cd3683870d3c",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "importAsPlugin": false,
+    "moduleId": "project:///assets/Script/Framework/Layout/LayoutFixedSize.js",
+    "importerSettings": 0,
+    "simulateGlobals": []
+  }
+}

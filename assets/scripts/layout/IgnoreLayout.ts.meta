@@ -1,0 +1,14 @@
+{
+  "ver": "4.0.22",
+  "importer": "typescript",
+  "imported": true,
+  "uuid": "c3c52814-cfc6-4a3e-ab92-a784f6e1ccde",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "importAsPlugin": false,
+    "moduleId": "project:///assets/Script/Framework/Layout/IgnoreLayout.js",
+    "importerSettings": 0,
+    "simulateGlobals": []
+  }
+}
