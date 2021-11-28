@@ -1,6 +1,5 @@
 import { CCFloat, Component, director, Director, Enum, Node, UITransform, Vec2, _decorator } from "cc";
-import IgnoreLayout from "./IgnoreLayout";
-import LayoutFixedSize from "./LayoutFixedSize";
+import LayoutElement from "./LayoutElement";
 
 const { ccclass, property, executeInEditMode } = _decorator;
 
@@ -23,17 +22,17 @@ export enum LayoutAlignment {
 
 @ccclass("Border")
 export class Border {
-    @property({ type: CCFloat, tooltip: "Border top" })
+    @property({ type: CCFloat, step: 1, tooltip: "Border top" })
     public top: number = 0;
-    @property({ type: CCFloat, tooltip: "Border bottom" })
+    @property({ type: CCFloat, step: 1, tooltip: "Border bottom" })
     public bottom: number = 0;
-    @property({ type: CCFloat, tooltip: "Border left" })
+    @property({ type: CCFloat, step: 1, tooltip: "Border left" })
     public left: number = 0;
-    @property({ type: CCFloat, tooltip: "Border right" })
+    @property({ type: CCFloat, step: 1, tooltip: "Border right" })
     public right: number = 0;
 }
 
-@executeInEditMode()
+@executeInEditMode
 export default abstract class BaseLayout extends Component {
     @property({ type: Border, tooltip: "容器的边距" })
     protected border: Border = new Border();
@@ -43,8 +42,15 @@ export default abstract class BaseLayout extends Component {
     protected horizontalAlignment: LayoutAlignment = LayoutAlignment.Center;
     @property({ type: Enum(LayoutAlignment), tooltip: "垂直对齐方式" })
     protected verticalAlignment: LayoutAlignment = LayoutAlignment.Center;
+    @property
+    protected _reverse: boolean = false;
     @property({ tooltip: "子节点倒过来排序" })
-    protected reverse: boolean = false;
+    public get reverse() { return this._reverse; };
+    public set reverse(v) {
+        this._reverse = v;
+        this.foreachChildren = this.getForeachChildren(v);
+        this.layoutDirty();
+    }
 
     private isDirty: boolean = false;
     private uiTransform: UITransform;
@@ -66,7 +72,7 @@ export default abstract class BaseLayout extends Component {
 
     protected getForeachChildren(reverse: boolean): (callback: (uiTransform: UITransform) => void) => void {
         let callChildFunc = (child: UITransform, callback: (uiTransform: UITransform) => void) => {
-            if (child.node.active && child.getComponent(IgnoreLayout) == null)
+            if (child.node.active && child.getComponent(LayoutElement)?.ignoreLayout == null)
                 callback(child);
         };
         if (reverse) {
@@ -142,11 +148,11 @@ export default abstract class BaseLayout extends Component {
         this.layoutDirty();
     }
 
-    protected layoutDirty(): void {
+    public layoutDirty(): void {
         this.isDirty = true;
     }
 
-    protected doLayout(): void {
+    public doLayout(): void {
         if (!this.isDirty || this.node.children.length <= 0) return;
         this.forceDoLayout();
     }
@@ -177,7 +183,7 @@ export default abstract class BaseLayout extends Component {
                 this.layoutChildiren(-this.sign, BaseLayout.signValue(-margins[0].y + width * (1 - anchor.x), this.sign), alignmentFunc);
                 break;
             case LayoutAlignment.Center:
-                this.layoutCenter(this.sign, BaseLayout.signValue(width * (anchor.x - 0.5), this.sign), alignmentFunc);
+                this.layoutCenter(this.sign, BaseLayout.signValue(width * (anchor.x - 0.5) - margins[0].x + margins[0].y, this.sign), alignmentFunc);
                 break;
             case LayoutAlignment.Full:
                 this.layoutFull(this.sign, margins[0], width, anchor, alignmentFunc);
@@ -202,7 +208,7 @@ export default abstract class BaseLayout extends Component {
                     this.setNodePosition(uiTransform, x, BaseLayout.signValue(-contentHeight * anchor + 0.5 * height + margin.y, sign));
                     break;
                 case LayoutAlignment.Center:
-                    this.setNodePosition(uiTransform, x, BaseLayout.signValue(-contentHeight * (anchor - 0.5), sign));
+                    this.setNodePosition(uiTransform, x, BaseLayout.signValue(-contentHeight * (anchor - 0.5) - margin.x + margin.y, sign));
                     break;
                 case LayoutAlignment.Full:
                     this.setNodePosition(uiTransform, x, BaseLayout.signValue(contentHeight * (1 - anchor) - 0.5 * height - margin.x, sign));
@@ -216,19 +222,19 @@ export default abstract class BaseLayout extends Component {
         }
     }
 
-    protected layoutChildiren(sign: number, margin: number, OnPosition: OnPositionEvent): void {
+    protected layoutChildiren(sign: number, margin: number, onPosition: OnPositionEvent): void {
         let lastOffset = margin;
         let spacing = BaseLayout.signValue(this.spacing, sign);
         this.foreachChildren((child) => {
             let childSize = BaseLayout.signValue(this.getNodeWidth(child) * 0.5, sign);
             lastOffset += childSize;
-            OnPosition(child, lastOffset, this.getNodeHeight(child));
+            onPosition(child, lastOffset, this.getNodeHeight(child));
             lastOffset += childSize + spacing;
         });
     }
 
     protected layoutCenter(sign: number, margin: number, onPosition: OnPositionEvent): void {
-        let layoutSize = - this.spacing;
+        let layoutSize = -this.spacing;
         this.foreachChildren((child) => {
             layoutSize += this.getNodeWidth(child) + this.spacing;
         });
@@ -248,7 +254,8 @@ export default abstract class BaseLayout extends Component {
         let childList: UITransform[] = [];
         let newWidth = width;
         this.foreachChildren((child) => {
-            if (child.getComponent(LayoutFixedSize) != null) {
+            let layoutElement = child.getComponent(LayoutElement);
+            if (layoutElement != null) {
                 newWidth -= this.getNodeWidth(child) + this.spacing;
             } else {
                 childList.push(child);
