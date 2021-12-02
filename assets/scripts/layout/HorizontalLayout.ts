@@ -1,5 +1,6 @@
 import { UITransform, Vec2, _decorator } from "cc";
 import BaseLayout from "./BaseLayout";
+import LayoutElement from "./LayoutElement";
 
 const { ccclass, menu, executeInEditMode } = _decorator;
 @ccclass
@@ -18,26 +19,38 @@ export default class HorizontalLayout extends BaseLayout {
     }
 
     protected getMargins(): Vec2[] {
-        return [new Vec2(this.border.left, this.border.right), new Vec2(this.border.top, this.border.bottom)];
+        return [new Vec2(this.left, this.right), new Vec2(this.top, this.bottom)];
     }
 
     protected setNodePosition(uiTransform: UITransform, x: number, y: number): void {
         uiTransform.node.setPosition(x, y, 0);
     }
 
-    protected getNodeWidth(uiTransform: UITransform): number {
+    protected getLayoutSize(uiTransform: UITransform): number {
         return uiTransform.width;
     }
 
-    protected getNodeHeight(uiTransform: UITransform): number {
+    protected getNoLayoutSize(uiTransform: UITransform): number {
         return uiTransform.height;
     }
 
-    protected setNodeWidth(uiTransform: UITransform, w: number): void {
+    protected setLayoutSize(uiTransform: UITransform, w: number): void {
         uiTransform.width = w;
     }
 
-    protected setNodeHeight(uiTransform: UITransform, h: number): void {
+    protected setNoLayoutSize(uiTransform: UITransform, h: number): void {
         uiTransform.height = h;
+    }
+
+    protected getElementMinSize(element: LayoutElement): number {
+        return element.minWidth;
+    }
+
+    protected getElementPreferredSize(element: LayoutElement): number {
+        return Math.max(element.preferredWidth, element.minWidth);
+    }
+
+    protected getElementFlexibleSize(element: LayoutElement): number {
+        return element.flexibleWidth;
     }
 }

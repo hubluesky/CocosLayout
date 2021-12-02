@@ -1,5 +1,6 @@
 import { UITransform, Vec2, _decorator } from "cc";
 import BaseLayout from "./BaseLayout";
+import LayoutElement from "./LayoutElement";
 
 const { ccclass, menu } = _decorator;
 @ccclass
@@ -16,26 +17,38 @@ export default class VerticalLayout extends BaseLayout {
     }
 
     protected getMargins(): Vec2[] {
-        return [new Vec2(this.border.top, this.border.bottom), new Vec2(this.border.left, this.border.right)];
+        return [new Vec2(this.bottom, this.top), new Vec2(this.right, this.left)];
     }
 
     protected setNodePosition(uiTransform: UITransform, x: number, y: number): void {
         uiTransform.node.setPosition(y, x, 0);
     }
 
-    protected getNodeWidth(uiTransform: UITransform): number {
+    protected getLayoutSize(uiTransform: UITransform): number {
         return uiTransform.height;
     }
 
-    protected getNodeHeight(uiTransform: UITransform): number {
+    protected getNoLayoutSize(uiTransform: UITransform): number {
         return uiTransform.width;
     }
 
-    protected setNodeWidth(uiTransform: UITransform, w: number): void {
+    protected setLayoutSize(uiTransform: UITransform, w: number): void {
         uiTransform.height = w;
     }
 
-    protected setNodeHeight(uiTransform: UITransform, h: number): void {
+    protected setNoLayoutSize(uiTransform: UITransform, h: number): void {
         uiTransform.width = h;
+    }
+
+    protected getElementMinSize(element: LayoutElement): number {
+        return element.minHeight;
+    }
+
+    protected getElementPreferredSize(element: LayoutElement): number {
+        return Math.max(element.preferredHeight, element.minHeight);
+    }
+
+    protected getElementFlexibleSize(element: LayoutElement): number {
+        return element.flexibleHeight;
     }
 }
