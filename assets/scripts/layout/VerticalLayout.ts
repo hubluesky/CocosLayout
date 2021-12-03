@@ -28,16 +28,23 @@ export default class VerticalLayout extends BaseLayout {
         return this.childScaleHeight ? uiTransform.height * uiTransform.node.scale.y : uiTransform.height;
     }
 
-    protected getNoLayoutSize(uiTransform: UITransform): number {
-        return this.childScaleWidth ? uiTransform.width * uiTransform.node.scale.x : uiTransform.width;
-    }
-
     protected setLayoutSize(uiTransform: UITransform, h: number): void {
         uiTransform.height = this.childScaleHeight ? h / uiTransform.node.scale.y : h;
     }
 
+    protected getNoLayoutSize(uiTransform: UITransform): number {
+        return this.childScaleWidth ? uiTransform.width * uiTransform.node.scale.x : uiTransform.width;
+    }
+
     protected setNoLayoutSize(uiTransform: UITransform, w: number): void {
         uiTransform.width = this.childScaleWidth ? w / uiTransform.node.scale.x : w;
+    }
+
+    protected getLayoutAnchor(uiTransform: UITransform): number {
+        return uiTransform.anchorY;
+    }
+    protected getNoLayoutAnchor(uiTransform: UITransform): number {
+        return uiTransform.anchorX;
     }
 
     protected getElementMinSize(uiTransform: UITransform, element: LayoutElement): number {

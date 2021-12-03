@@ -15,6 +15,11 @@ interface GetChildSize {
     (child: UITransform, element: LayoutElement, totalSize: number, size: number): number;
 }
 
+interface GetChildSize2 {
+    (child: UITransform, element: LayoutElement): number;
+}
+
+
 export enum LayoutAlignment {
     /** 正向排序 */
     Forward,
@@ -260,29 +265,34 @@ export default abstract class BaseLayout extends Component {
         const anchor = this.getNodeAnchor(this.uiTransform);
         const outHeight = { maxHeight: 0 };
         const alignmentFunc = this.getAlignmentFunction(anchor.y, margins[1], outHeight);
+
+        let result = this.getChildrenSizes();
+        let getChildFunc: GetChildSize2;
+        let allMargin = margins[0].x + margins[0].y;
+        if (result.totalPreferredSize + allMargin <= contentSize) {
+            getChildFunc = this.getChildSize(this.getChildElementPreferredSize, result.flexibleSize, contentSize - result.totalPreferredSize - allMargin);
+        } else {
+            getChildFunc = this.getChildSize(this.getChildElementMinSize, result.shrinkSize, contentSize - result.totalMinSize - allMargin);
+        }
+
         switch (this.layoutType) {
             case LayoutAlignment.Forward:
-                let result = this.getChildrenSizes();
-                let getChildFunc: (child: UITransform, element: LayoutElement) => number;
-                let margin = margins[0].x + margins[0].y;
-                if (result.totalPreferredSize + margin <= contentSize) {
-                    getChildFunc = this.getChildSize(this.getChildElementPreferredSize, result.flexibleSize, contentSize - result.totalPreferredSize - margin);
-                } else {
-                    getChildFunc = this.getChildSize(this.getChildElementMinSize, result.shrinkSize, contentSize - result.totalMinSize - margin);
-                }
                 this.layoutChildiren(-contentSize * anchor.x + margins[0].x, getChildFunc, alignmentFunc);
                 break;
             case LayoutAlignment.Backward:
-                this.layoutChildirenBack(contentSize * (1 - anchor.x) - margins[0].y, alignmentFunc);
+                this.layoutChildirenBack(contentSize * (1 - anchor.x) - margins[0].y, getChildFunc, alignmentFunc);
                 break;
             case LayoutAlignment.Center:
-                this.layoutCenter(contentSize * (anchor.x - 0.5) - margins[0].x + margins[0].y, alignmentFunc);
+                if (result.flexibleSize > 0)
+                    this.layoutChildiren(-contentSize * anchor.x + margins[0].x, getChildFunc, alignmentFunc);
+                else
+                    this.layoutCenter(contentSize * (anchor.x - 0.5) - margins[0].x + margins[0].y, getChildFunc, alignmentFunc);
                 break;
             case LayoutAlignment.Full:
                 this.layoutFull(margins[0], contentSize, anchor, alignmentFunc);
                 break;
             case LayoutAlignment.Content:
-                this.layoutContent(margins[0], contentSize, anchor, alignmentFunc);
+                this.layoutContent(margins[0], anchor, this.getLayoutSize.bind(this), alignmentFunc);
                 break;
         }
 
@@ -307,8 +317,9 @@ export default abstract class BaseLayout extends Component {
                     this.setNodePosition(uiTransform, offset, -contentSize * (anchor - 0.5) - (0.5 - childAnchor) * childSize + margin.x + margin.y);
                     break;
                 case LayoutAlignment.Full:
+                    childSize = contentSize - margin.x - margin.y;
+                    this.setNoLayoutSize(uiTransform, childSize);
                     this.setNodePosition(uiTransform, offset, contentSize * (1 - anchor) - (1 - childAnchor) * childSize - margin.x);
-                    this.setNoLayoutSize(uiTransform, contentSize - margin.x - margin.y);
                     break;
                 case LayoutAlignment.Content:
                     this.setNodePosition(uiTransform, offset, contentSize * (1 - anchor) - (1 - childAnchor) * childSize - margin.x);
@@ -318,7 +329,7 @@ export default abstract class BaseLayout extends Component {
         }
     }
 
-    private getChildSize(getSize: GetChildSize, totalSize: number, size: number): (child: UITransform, element: LayoutElement) => number {
+    private getChildSize(getSize: GetChildSize, totalSize: number, size: number): GetChildSize2 {
         return (child: UITransform, element: LayoutElement) => getSize.call(this, child, element, totalSize, size);
     }
 
@@ -369,7 +380,7 @@ export default abstract class BaseLayout extends Component {
         return preferredSize;
     }
 
-    protected layoutChildiren(lastOffset: number, getChildSize: (child: UITransform, element: LayoutElement) => number, setPosition: SetPositionEvent): void {
+    protected layoutChildiren(lastOffset: number, getChildSize: GetChildSize2, setPosition: SetPositionEvent): void {
         this.foreachChildren((child, element) => {
             let childSize = getChildSize(child, element);
             let anchor = this.getLayoutAnchor(child);
@@ -379,39 +390,39 @@ export default abstract class BaseLayout extends Component {
         });
     }
 
-    protected layoutChildirenBack(margin: number, setPosition: SetPositionEvent): void {
+    protected layoutChildirenBack(margin: number, getChildSize: GetChildSize2, setPosition: SetPositionEvent): void {
         let lastOffset = margin;
-        this.foreachChildren((child) => {
-            let childHalfSize = this.getLayoutSize(child) * this.getLayoutAnchor(child);
-            lastOffset -= childHalfSize;
+        this.foreachChildren((child, element) => {
+            let childSize = getChildSize(child, element);
+            let anchor = this.getLayoutAnchor(child);
+            lastOffset -= childSize * (1 - anchor);
             setPosition(child, lastOffset, this.getNoLayoutSize(child));
-            lastOffset -= childHalfSize + this.spacing;
+            lastOffset -= childSize * anchor + this.spacing;
         });
     }
 
-    protected layoutCenter(margin: number, setPosition: SetPositionEvent): void {
+    protected layoutCenter(margin: number, getChildSize: GetChildSize2, setPosition: SetPositionEvent): void {
         let layoutSize = -this.spacing;
-        this.foreachChildren((child) => {
-            layoutSize += this.getLayoutSize(child) + this.spacing;
+        this.foreachChildren((child, element) => {
+            layoutSize += getChildSize(child, element) + this.spacing;
         });
-        this.layoutChildiren(-layoutSize * 0.5 - margin, setPosition);
+        this.layoutChildiren(-layoutSize * 0.5 - margin, getChildSize, setPosition);
     }
 
-    protected layoutContent(margin: Vec2, width: number, anchor: Vec2, setPosition: SetPositionEvent): void {
+    protected layoutContent(margin: Vec2, anchor: Vec2, getChildSize: GetChildSize2, setPosition: SetPositionEvent): void {
         let layoutSize = -this.spacing + margin.x + margin.y;
-        this.foreachChildren((child) => {
-            layoutSize += this.getLayoutSize(child) + this.spacing;
+        this.foreachChildren((child, element) => {
+            layoutSize += getChildSize(child, element) + this.spacing;
         });
         this.setLayoutSize(this.uiTransform, layoutSize);
-        this.layoutChildiren(margin.x - layoutSize * anchor.x, setPosition);
+        this.layoutChildiren(margin.x - layoutSize * anchor.x, getChildSize, setPosition);
     }
 
     protected layoutFull(margin: Vec2, width: number, anchor: Vec2, setPosition: SetPositionEvent): void {
         let childList: UITransform[] = [];
         let newWidth = width;
-        this.foreachChildren((child) => {
-            let layoutElement = child.getComponent(LayoutElement);
-            if (layoutElement != null) {
+        this.foreachChildren((child, element) => {
+            if (element != null && this.getElementFlexibleSize(element) <= 0) {
                 newWidth -= this.getLayoutSize(child) + this.spacing;
             } else {
                 childList.push(child);
@@ -420,6 +431,6 @@ export default abstract class BaseLayout extends Component {
         let childWidth = (newWidth - margin.x - margin.y + this.spacing) / childList.length - this.spacing;
         for (let child of childList)
             this.setLayoutSize(child, childWidth);
-        this.layoutChildiren(margin.x - width * anchor.x, setPosition);
+        this.layoutChildiren(margin.x - width * anchor.x, this.getLayoutSize.bind(this), setPosition);
     }
 }
