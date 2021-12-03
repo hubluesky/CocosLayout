@@ -30,16 +30,24 @@ export default class HorizontalLayout extends BaseLayout {
         return this.childScaleWidth ? uiTransform.width * uiTransform.node.scale.x : uiTransform.width;
     }
 
-    protected getNoLayoutSize(uiTransform: UITransform): number {
-        return this.childScaleHeight ? uiTransform.height * uiTransform.node.scale.y : uiTransform.height;
-    }
-
     protected setLayoutSize(uiTransform: UITransform, w: number): void {
         uiTransform.width = this.childScaleWidth ? w / uiTransform.node.scale.x : w;
     }
 
+    protected getNoLayoutSize(uiTransform: UITransform): number {
+        return this.childScaleHeight ? uiTransform.height * uiTransform.node.scale.y : uiTransform.height;
+    }
+
     protected setNoLayoutSize(uiTransform: UITransform, h: number): void {
         uiTransform.height = this.childScaleHeight ? h / uiTransform.node.scale.y : h;
+    }
+
+    protected getLayoutAnchor(uiTransform: UITransform): number {
+        return uiTransform.anchorX;
+    }
+
+    protected getNoLayoutAnchor(uiTransform: UITransform): number {
+        return uiTransform.anchorY;
     }
 
     protected getElementMinSize(uiTransform: UITransform, element: LayoutElement): number {
