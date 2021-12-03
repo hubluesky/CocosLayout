@@ -1,7 +1,7 @@
-import { CCFloat, Component, director, Director, Enum, Node, size, UITransform, Vec2, _decorator } from "cc";
+import { CCFloat, Component, director, Director, Enum, Node, UITransform, Vec2, _decorator } from "cc";
 import LayoutElement from "./LayoutElement";
 
-const { ccclass, property, executeInEditMode } = _decorator;
+const { property, executeInEditMode } = _decorator;
 
 interface SetPositionEvent {
     (uiTransform: UITransform, x: number, height: number): void;
@@ -224,10 +224,12 @@ export default abstract class BaseLayout extends Component {
 
     protected onChildAdded(child: Node): void {
         this.addChildEventListeners(child);
+        this.layoutDirty();
     }
 
     protected onChildRemoved(child: Node): void {
         this.removeChildEventListeners(child);
+        this.layoutDirty();
     }
 
     protected onResizeChanged(): void {
