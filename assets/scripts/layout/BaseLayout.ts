@@ -41,6 +41,12 @@ export default abstract class BaseLayout extends Component {
     @property
     private _spacing: number = 0;
     @property
+    private _childScaleWidth: boolean = false;
+    @property
+    private _childScaleHeight: boolean = false;
+    @property
+    private _reverse: boolean = false;
+    @property
     private _horizontalAlignment: LayoutAlignment = LayoutAlignment.Center;
     @property
     private _verticalAlignment: LayoutAlignment = LayoutAlignment.Center;
@@ -52,7 +58,6 @@ export default abstract class BaseLayout extends Component {
         this._horizontalAlignment = v;
         this.layoutDirty();
     }
-
 
     @property({ type: Enum(LayoutAlignment), displayOrder: 1, tooltip: "垂直对齐方式" })
     public get verticalAlignment() { return this._verticalAlignment; }
@@ -102,14 +107,28 @@ export default abstract class BaseLayout extends Component {
         this.layoutDirty();
     }
 
-    @property
-    private _reverse: boolean = false;
     @property({ tooltip: "子节点倒过来排序" })
     public get reverse() { return this._reverse; };
     public set reverse(v) {
         if (this._reverse == v) return;
         this._reverse = v;
         this.foreachChildren = this.getForeachChildren(v);
+        this.layoutDirty();
+    }
+
+    @property({ tooltip: "计算子节点的宽度缩放" })
+    public get childScaleWidth() { return this._childScaleWidth; };
+    public set childScaleWidth(v) {
+        if (this._childScaleWidth == v) return;
+        this._childScaleWidth = v;
+        this.layoutDirty();
+    }
+
+    @property({ tooltip: "计算子节点的高度缩放" })
+    public get childScaleHeight() { return this._childScaleHeight; };
+    public set childScaleHeight(v) {
+        if (this._childScaleHeight == v) return;
+        this._childScaleHeight = v;
         this.layoutDirty();
     }
 
@@ -222,15 +241,15 @@ export default abstract class BaseLayout extends Component {
     protected abstract get layoutType(): LayoutAlignment;
     protected abstract get alignment(): LayoutAlignment;
     protected abstract get sign(): number;
-    protected abstract getNodeAnchor(node: UITransform): Vec2;
+    protected abstract getNodeAnchor(uiTransform: UITransform): Vec2;
     protected abstract getMargins(): Vec2[];
-    protected abstract setNodePosition(node: UITransform, x: number, y: number): void;
-    protected abstract getLayoutSize(node: UITransform): number;
-    protected abstract getNoLayoutSize(node: UITransform): number;
-    protected abstract setLayoutSize(node: UITransform, w: number): void;
-    protected abstract setNoLayoutSize(node: UITransform, h: number): void;
-    protected abstract getElementMinSize(element: LayoutElement): number;
-    protected abstract getElementPreferredSize(element: LayoutElement): number;
+    protected abstract setNodePosition(uiTransform: UITransform, x: number, y: number): void;
+    protected abstract getLayoutSize(uiTransform: UITransform): number;
+    protected abstract getNoLayoutSize(uiTransform: UITransform): number;
+    protected abstract setLayoutSize(uiTransform: UITransform, w: number): void;
+    protected abstract setNoLayoutSize(uiTransform: UITransform, h: number): void;
+    protected abstract getElementMinSize(uiTransform: UITransform, element: LayoutElement): number;
+    protected abstract getElementPreferredSize(uiTransform: UITransform, element: LayoutElement): number;
     protected abstract getElementFlexibleSize(element: LayoutElement): number;
 
     public forceDoLayout(): void {
@@ -309,8 +328,8 @@ export default abstract class BaseLayout extends Component {
                 totalMinSize += nodeSize;
                 totalPreferredSize += nodeSize;
             } else {
-                let min = this.getElementMinSize(element);
-                let preferred = this.getElementPreferredSize(element);
+                let min = this.getElementMinSize(child, element);
+                let preferred = this.getElementPreferredSize(child, element);
                 let flexible = this.getElementFlexibleSize(element);
                 totalMinSize += min;
                 totalPreferredSize += preferred;
@@ -324,8 +343,8 @@ export default abstract class BaseLayout extends Component {
 
     private getChildElementMinSize(child: UITransform, element: LayoutElement, totalShrinkSize: number, size: number): number {
         if (element == null) return this.getLayoutSize(child);
-        let minSize = this.getElementMinSize(element);
-        let preferredSize = this.getElementPreferredSize(element);
+        let minSize = this.getElementMinSize(child, element);
+        let preferredSize = this.getElementPreferredSize(child, element);
         if (totalShrinkSize > 0 && size > 0) {
             let shrinkRate = (preferredSize - minSize) / totalShrinkSize;
             minSize += shrinkRate * size;
@@ -337,7 +356,7 @@ export default abstract class BaseLayout extends Component {
     private getChildElementPreferredSize(child: UITransform, element: LayoutElement, totalFlexibleSize: number, size: number): number {
         if (element == null) return this.getLayoutSize(child);
         let flexibleSize = this.getElementFlexibleSize(element);
-        let preferredSize = this.getElementPreferredSize(element);
+        let preferredSize = this.getElementPreferredSize(child, element);
         if (totalFlexibleSize > 0 && size > 0) {
             let flexibleRate = flexibleSize / totalFlexibleSize;
             preferredSize += flexibleRate * size;

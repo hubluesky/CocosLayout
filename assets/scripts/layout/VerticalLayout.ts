@@ -25,27 +25,28 @@ export default class VerticalLayout extends BaseLayout {
     }
 
     protected getLayoutSize(uiTransform: UITransform): number {
-        return uiTransform.height;
+        return this.childScaleHeight ? uiTransform.height * uiTransform.node.scale.y : uiTransform.height;
     }
 
     protected getNoLayoutSize(uiTransform: UITransform): number {
-        return uiTransform.width;
+        return this.childScaleWidth ? uiTransform.width * uiTransform.node.scale.x : uiTransform.width;
     }
 
-    protected setLayoutSize(uiTransform: UITransform, w: number): void {
-        uiTransform.height = w;
+    protected setLayoutSize(uiTransform: UITransform, h: number): void {
+        uiTransform.height = this.childScaleHeight ? h / uiTransform.node.scale.y : h;
     }
 
-    protected setNoLayoutSize(uiTransform: UITransform, h: number): void {
-        uiTransform.width = h;
+    protected setNoLayoutSize(uiTransform: UITransform, w: number): void {
+        uiTransform.width = this.childScaleWidth ? w / uiTransform.node.scale.x : w;
     }
 
-    protected getElementMinSize(element: LayoutElement): number {
-        return element.minHeight;
+    protected getElementMinSize(uiTransform: UITransform, element: LayoutElement): number {
+        return this.childScaleHeight ? element.minHeight * uiTransform.node.scale.y : element.minHeight;
     }
 
-    protected getElementPreferredSize(element: LayoutElement): number {
-        return Math.max(element.preferredHeight, element.minHeight);
+    protected getElementPreferredSize(uiTransform: UITransform, element: LayoutElement): number {
+        let height = Math.max(element.preferredHeight, element.minHeight);
+        return this.childScaleHeight ? height * uiTransform.node.scale.y : height;
     }
 
     protected getElementFlexibleSize(element: LayoutElement): number {

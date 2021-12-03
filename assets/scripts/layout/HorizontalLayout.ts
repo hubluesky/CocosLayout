@@ -27,27 +27,28 @@ export default class HorizontalLayout extends BaseLayout {
     }
 
     protected getLayoutSize(uiTransform: UITransform): number {
-        return uiTransform.width;
+        return this.childScaleWidth ? uiTransform.width * uiTransform.node.scale.x : uiTransform.width;
     }
 
     protected getNoLayoutSize(uiTransform: UITransform): number {
-        return uiTransform.height;
+        return this.childScaleHeight ? uiTransform.height * uiTransform.node.scale.y : uiTransform.height;
     }
 
     protected setLayoutSize(uiTransform: UITransform, w: number): void {
-        uiTransform.width = w;
+        uiTransform.width = this.childScaleWidth ? w / uiTransform.node.scale.x : w;
     }
 
     protected setNoLayoutSize(uiTransform: UITransform, h: number): void {
-        uiTransform.height = h;
+        uiTransform.height = this.childScaleHeight ? h / uiTransform.node.scale.y : h;
     }
 
-    protected getElementMinSize(element: LayoutElement): number {
-        return element.minWidth;
+    protected getElementMinSize(uiTransform: UITransform, element: LayoutElement): number {
+        return this.childScaleWidth ? element.minWidth * uiTransform.node.scale.x : element.minWidth;
     }
 
-    protected getElementPreferredSize(element: LayoutElement): number {
-        return Math.max(element.preferredWidth, element.minWidth);
+    protected getElementPreferredSize(uiTransform: UITransform, element: LayoutElement): number {
+        let width = Math.max(element.preferredWidth, element.minWidth);
+        return this.childScaleWidth ? width * uiTransform.node.scale.x : width;
     }
 
     protected getElementFlexibleSize(element: LayoutElement): number {
